@@ -60,6 +60,7 @@ class Shimmer extends StatefulWidget {
   final Gradient gradient;
   final int loop;
   final bool enabled;
+  final bool reverse;
 
   const Shimmer({
     super.key,
@@ -69,6 +70,7 @@ class Shimmer extends StatefulWidget {
     this.period = const Duration(milliseconds: 1500),
     this.loop = 0,
     this.enabled = true,
+    this.reverse = false,
   });
 
   ///
@@ -85,6 +87,7 @@ class Shimmer extends StatefulWidget {
     this.direction = ShimmerDirection.ltr,
     this.loop = 0,
     this.enabled = true,
+    this.reverse = false,
   }) : gradient = LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.centerRight,
@@ -128,19 +131,38 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.period)
-      ..addStatusListener((AnimationStatus status) {
-        if (status != AnimationStatus.completed) {
-          return;
-        }
-        _count++;
-        if (widget.loop <= 0) {
-          _controller.repeat();
-        } else if (_count < widget.loop) {
-          _controller.forward(from: 0.0);
-        }
-      });
+      ..addStatusListener(widget.reverse ? reverseListener : normalListener);
     if (widget.enabled) {
       _controller.forward();
+    }
+  }
+
+  void normalListener(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      return;
+    }
+    _count++;
+    if (widget.loop <= 0) {
+      _controller.repeat();
+    } else if (_count < widget.loop) {
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  void reverseListener(AnimationStatus status) {
+    if (status != AnimationStatus.completed &&
+        status != AnimationStatus.dismissed) {
+      return;
+    }
+    _count++;
+    if (widget.loop <= 0) {
+      if (_count % 2 != 0) {
+        _controller.reverse();
+      } else {
+        _controller.forward(from: 0.0);
+      }
+    } else if (_count < widget.loop) {
+      _controller.forward(from: 0.0);
     }
   }
 
